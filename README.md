@@ -1,5 +1,7 @@
 # Notes
 
+All tests were run from Alpine-based Docker container running in Kubernetes Pod on Amazon EKS cluster. The EKS cluster and MSK cluster in separate VPCs, within same AWS Account and AWS Region (us-east-1).
+
 ## Requirements
 
 - Case 1: RF=2, acks = 1, min.insync.replicas = 1, nearest replica fetching turned on for consumer, PST not enabled
