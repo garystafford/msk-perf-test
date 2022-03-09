@@ -97,18 +97,6 @@ bin/kafka-topics.sh --list \
 ```
 
 ```shell
-# delete topics
-for topic in ${TOPICS[@]}; do
-    echo ""
-    echo $topic
-    bin/kafka-topics.sh --delete \
-      --topic $topic \
-      --bootstrap-server $BOOTSTRAP_SERVERS \
-      --command-config config/client-iam.properties
-done;
-```
-
-```shell
 # get producer perf help
 bin/kafka-producer-perf-test.sh --help
 
@@ -142,6 +130,18 @@ for topic in ${TOPICS[@]}; do
       --bootstrap-server $BOOTSTRAP_SERVERS | \
     jq -R .|jq -sr 'map(./",")|transpose|map(join(": "))[]'
     sleep 1m
+done;
+```
+
+```shell
+# delete topics
+for topic in ${TOPICS[@]}; do
+    echo ""
+    echo $topic
+    bin/kafka-topics.sh --delete \
+      --topic $topic \
+      --bootstrap-server $BOOTSTRAP_SERVERS \
+      --command-config config/client-iam.properties
 done;
 ```
 
