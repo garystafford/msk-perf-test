@@ -1,6 +1,7 @@
 # Notes
 
-All tests were run from Alpine-based Docker container running in Kubernetes Pod on Amazon EKS cluster. The EKS cluster and MSK cluster in separate VPCs, within same AWS Account and AWS Region (us-east-1).
+All tests were run from Alpine-based Docker container running in Kubernetes Pod on Amazon EKS cluster. The EKS cluster
+and MSK cluster in separate VPCs, within same AWS Account and AWS Region (us-east-1).
 
 ## Requirements
 
@@ -26,18 +27,29 @@ socket.request.max.bytes=104857600
 socket.send.buffer.bytes=102400
 unclean.leader.election.enable=true
 zookeeper.session.timeout.ms=18000
+replica.selector.class=org.apache.kafka.common.replica.RackAwareReplicaSelector
 ```
+
 ## Helpful Commands
 
 ```shell
-# *** CHANGE ME ***
-export BBROKERS="b-3.change-me.kafka.us-east-1.amazonaws.com:9098,b-1.change-me.kafka.us-east-1.amazonaws.com:9098,..."
+# *** CHANGE ME - Bootstrap servers ***
+export BOOTSTRAP_SERVERS="b-2...us-east-1.amazonaws.com:9098,b-3...us-east-1.amazonaws.com:9098,b-4...us-east-1.amazonaws.com:9098"
+
+# Declare an array of topic names to test
+declare -a TOPICS=("test_3_3" "test_50_1" "test_100_1" "test_150_1" "test_300_1")
+
+# Number of records to produce/consume
+export MESSAGE_COUNT=10000000
+
+# Record size (Bytes)
+export REC_SIZE=400
 ```
 
 ```shell
 # create topics
 bin/kafka-topics.sh \
-  --bootstrap-server $BBROKERS \
+  --bootstrap-server $BOOTSTRAP_SERVERS \
   --command-config config/client-iam.properties \
   --create \
   --topic test_3_3 \
@@ -45,7 +57,23 @@ bin/kafka-topics.sh \
   --replication-factor 3
 
 bin/kafka-topics.sh \
-  --bootstrap-server $BBROKERS \
+  --bootstrap-server $BOOTSTRAP_SERVERS \
+  --command-config config/client-iam.properties \
+  --create \
+  --topic test_50_1 \
+  --partitions 50 \
+  --replication-factor 1
+
+bin/kafka-topics.sh \
+  --bootstrap-server $BOOTSTRAP_SERVERS \
+  --command-config config/client-iam.properties \
+  --create \
+  --topic test_100_1 \
+  --partitions 100 \
+  --replication-factor 1
+
+bin/kafka-topics.sh \
+  --bootstrap-server $BOOTSTRAP_SERVERS \
   --command-config config/client-iam.properties \
   --create \
   --topic test_150_1 \
@@ -53,7 +81,7 @@ bin/kafka-topics.sh \
   --replication-factor 1
 
 bin/kafka-topics.sh \
-  --bootstrap-server $BBROKERS \
+  --bootstrap-server $BOOTSTRAP_SERVERS \
   --command-config config/client-iam.properties \
   --create \
   --topic test_300_1 \
@@ -64,18 +92,18 @@ bin/kafka-topics.sh \
 ```shell
 # list topics
 bin/kafka-topics.sh --list \
-  --bootstrap-server $BBROKERS \
+  --bootstrap-server $BOOTSTRAP_SERVERS \
   --command-config config/client-iam.properties
 ```
 
 ```shell
 # delete topics
-for topic in "test_3_3" "test_150_1" "test_300_1"; do
+for topic in ${TOPICS[@]}; do
     echo ""
     echo $topic
     bin/kafka-topics.sh --delete \
       --topic $topic \
-      --bootstrap-server $BBROKERS \
+      --bootstrap-server $BOOTSTRAP_SERVERS \
       --command-config config/client-iam.properties
 done;
 ```
@@ -85,16 +113,17 @@ done;
 bin/kafka-producer-perf-test.sh --help
 
 # producer perf test
-for topic in "test_3_3" "test_150_1" "test_300_1"; do
+for topic in ${TOPICS[@]}; do
     echo ""
     echo $topic
     bin/kafka-producer-perf-test.sh \
       --topic $topic \
-      --num-records 5000000 \
-      --record-size 400 \
+      --num-records $MESSAGE_COUNT \
+      --record-size $REC_SIZE \
       --throughput -1 \
       --producer.config config/producer_perf_v1.properties \
       --print-metrics
+    sleep 1m
 done;
 ```
 
@@ -103,16 +132,17 @@ done;
 bin/kafka-consumer-perf-test.sh --help
 
 # consumer perf test
-for topic in "test_3_3" "test_150_1" "test_300_1"; do
+for topic in ${TOPICS[@]}; do
     echo ""
     echo $topic
     bin/kafka-consumer-perf-test.sh \
       --topic $topic \
-      --messages 5000000 \
+      --messages $MESSAGE_COUNT \
       --consumer.config config/consumer_perf_v1.properties \
-      --bootstrap-server $BBROKERS
+      --bootstrap-server $BOOTSTRAP_SERVERS | \
+    jq -R .|jq -sr 'map(./",")|transpose|map(join(": "))[]'
+    sleep 1m
 done;
-
 ```
 
 ## References
@@ -123,3 +153,7 @@ done;
 - <https://code.amazon.com/packages/AwsSaMskKdsPerformance/trees/mainline>
 - <https://medium.com/metrosystemsro/apache-kafka-how-to-test-performance-for-clients-configured-with-ssl-encryption-3356d3a0d52b>
 - <https://developers.redhat.com/blog/2020/04/29/consuming-messages-from-closest-replicas-in-apache-kafka-2-4-0-and-amq-streams#using_the_rack_aware_selector_in_amq_streams>
+- <https://docs.aws.amazon.com/msk/latest/developerguide/supported-kafka-versions.html>
+- <https://docs.aws.amazon.com/msk/latest/developerguide/msk-configuration-properties.html>
+- <https://www.confluent.io/blog/kafka-fastest-messaging-system/>
+- <https://granulate.io/optimizing-kafka-performance/>
