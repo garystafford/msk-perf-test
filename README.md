@@ -1,17 +1,38 @@
 # Notes
 
+## Requirements
+
 - Case 1: RF=2, acks = 1, min.insync.replicas = 1, nearest replica fetching turned on for consumer, PST not enabled
 - Case 2: RF=3, acks = 1, min.insync.replicas = 1, nearest replica fetching turned on for consumer, PST not enabled
 - 300-500 bytes/message (used 400)
 - 50 MB/s in total
 - 50 * 1024 * 1024 = 52428800 / 400 = 131072 msg/sec
 
+## Custom MSK Configuration
+
+```properties
+auto.create.topics.enable=true
+default.replication.factor=3
+min.insync.replicas=1
+num.io.threads=8
+num.network.threads=5
+num.partitions=1
+num.replica.fetchers=2
+replica.lag.time.max.ms=30000
+socket.receive.buffer.bytes=102400
+socket.request.max.bytes=104857600
+socket.send.buffer.bytes=102400
+unclean.leader.election.enable=true
+zookeeper.session.timeout.ms=18000
+```
 ## Helpful Commands
 
 ```shell
 # *** CHANGE ME ***
-export BBROKERS="b-3.change-me...kafka.us-east-1.amazonaws.com:9098,b-1.change-me...kafka.us-east-1.amazonaws.com:9098,b-4.change-me...kafka.us-east-1.amazonaws.com:9098"
+export BBROKERS="b-3.change-me.kafka.us-east-1.amazonaws.com:9098,b-1.change-me.kafka.us-east-1.amazonaws.com:9098,..."
+```
 
+```shell
 # create topics
 bin/kafka-topics.sh \
   --bootstrap-server $BBROKERS \
@@ -36,12 +57,16 @@ bin/kafka-topics.sh \
   --topic test_300_1 \
   --partitions 300 \
   --replication-factor 1
+```
 
+```shell
 # list topics
 bin/kafka-topics.sh --list \
   --bootstrap-server $BBROKERS \
   --command-config config/client-iam.properties
+```
 
+```shell
 # delete topics
 for topic in "test_3_3" "test_150_1" "test_300_1"; do
     echo ""
@@ -51,7 +76,9 @@ for topic in "test_3_3" "test_150_1" "test_300_1"; do
       --bootstrap-server $BBROKERS \
       --command-config config/client-iam.properties
 done;
+```
 
+```shell
 # get producer perf help
 bin/kafka-producer-perf-test.sh --help
 
@@ -67,7 +94,9 @@ for topic in "test_3_3" "test_150_1" "test_300_1"; do
       --producer.config config/producer_perf_v1.properties \
       --print-metrics
 done;
+```
 
+```shell
 # get consumer perf help
 bin/kafka-consumer-perf-test.sh --help
 
