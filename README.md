@@ -157,3 +157,8 @@ done;
 - <https://docs.aws.amazon.com/msk/latest/developerguide/msk-configuration-properties.html>
 - <https://www.confluent.io/blog/kafka-fastest-messaging-system/>
 - <https://granulate.io/optimizing-kafka-performance/>
+
+---
+
+<i>The contents of this repository represent my viewpoints and not of my past or current employers, including Amazon Web
+Services (AWS). All third-party libraries, modules, plugins, and SDKs are the property of their respective owners.</i>
